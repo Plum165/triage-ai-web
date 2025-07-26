@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Triage AI Chat</title>
+  <style>
+    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+    #chat { border: 1px solid #ccc; padding: 10px; max-width: 500px; margin: auto; background: white; }
+    .msg { margin: 10px 0; }
+    .user { color: blue; }
+    .ai { color: green; }
+    input, button { padding: 10px; margin-top: 10px; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <div id="messages"></div>
+    <input id="userInput" placeholder="Type your answer..." />
+    <button onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    const messagesDiv = document.getElementById("messages");
+
+    function addMessage(text, className) {
+      const div = document.createElement("div");
+      div.className = "msg " + className;
+      div.textContent = text;
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage("You: " + text, "user");
+      input.value = "";
+
+      const res = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      const data = await res.json();
+      addMessage("AI: " + data.message, "ai");
+
+      if (data.triage) {
+        addMessage("🟡 Triage Level: " + data.triage, "ai");
+        addMessage("📋 Advice: " + data.advice, "ai");
+      }
+    }
+
+    // First question
+    window.onload = () => {
+      addMessage("AI: Hello! What brings you in today?", "ai");
+    };
+  </script>
+</body>
+</html>
