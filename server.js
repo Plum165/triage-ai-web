@@ -1,7 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const session = require("express-session");
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const app = express();
 const PORT = 3000;
@@ -10,8 +11,16 @@ const PORT = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static("public"));
+app.use(session({
+  secret: "triage_secret_key",
+  resave: false,
+  saveUninitialized: true,
+}));
 
-// Store conversation context per session (for now just global)
+// In-memory user store
+let users = [];
+
+// Per-session conversation (for simplicity, global per user)
 let conversation = [
   {
     role: "system",
@@ -19,40 +28,77 @@ let conversation = [
   }
 ];
 
-// Route: POST /ask
-app.post("/ask", async (req, res) => {
+// === Auth Routes ===
+
+// Signup
+app.post("/signup", (req, res) => {
+  const { username, password } = req.body;
+  const userExists = users.find(u => u.username === username);
+
+  if (userExists) {
+    return res.status(400).json({ error: "Username already taken." });
+  }
+
+  users.push({ username, password });
+  req.session.user = username;
+  res.json({ success: true, user: username });
+});
+
+// Login
+app.post("/login", (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username && u.password === password);
+
+  if (!user) {
+    return res.status(401).json({ error: "Invalid credentials." });
+  }
+
+  req.session.user = username;
+  res.json({ success: true, user: username });
+});
+
+// Logout
+app.post("/logout", (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
+});
+
+// Middleware to check auth
+function checkAuth(req, res, next) {
+  if (req.session.user) return next();
+  res.status(401).json({ error: "Not logged in." });
+}
+
+// === AI Route ===
+app.post("/ask", checkAuth, async (req, res) => {
   const userMessage = req.body.message;
   if (!userMessage) {
     return res.status(400).json({ error: "No message provided." });
   }
 
-  // Add user's message to conversation
   conversation.push({ role: "user", content: userMessage });
 
   try {
     const aiResponse = await callGrokAPI(userMessage, conversation);
 
-    // Push AI response to conversation
     conversation.push({ role: "assistant", content: aiResponse.message });
 
-    // Return response
     res.json({
       message: aiResponse.message,
       triage: aiResponse.triage,
       advice: aiResponse.advice
     });
-
   } catch (err) {
     console.error("Error:", err);
     res.status(500).json({ error: "Something went wrong calling the AI." });
   }
 });
 
-// Function: Call Grok/OpenAI-style API
+// === Call Grok API ===
 async function callGrokAPI(userMessage, conversation) {
-  const apiKey = "YOUR_GROK_API_KEY"; // Replace with your actual API key
-  const apiURL = "https://api.grok.com/v1/chat/completions"; 
-  const modelName = "llama3-8b-8192"; // ⚙️ Replace with the actual model name
+  const apiKey = "YOUR_GROK_API_KEY"; // Replace with your actual key
+  const apiURL = "https://api.grok.com/v1/chat/completions";
+  const modelName = "llama3-8b-8192"; 
 
   const response = await fetch(apiURL, {
     method: "POST",
@@ -67,7 +113,6 @@ async function callGrokAPI(userMessage, conversation) {
   });
 
   const data = await response.json();
-
   const replyText = data.choices?.[0]?.message?.content || "No response from Grok.";
 
   return {
@@ -77,7 +122,7 @@ async function callGrokAPI(userMessage, conversation) {
   };
 }
 
-// Extract triage level from text
+// === Helpers ===
 function extractTriage(text) {
   const lower = text.toLowerCase();
   if (lower.includes("critical")) return "Red";
@@ -86,7 +131,6 @@ function extractTriage(text) {
   return null;
 }
 
-// Extract advice from text (simple method)
 function extractAdvice(text) {
   const match = text.match(/advice[:\-]?\s*(.+)/i);
   return match ? match[1].trim() : null;
