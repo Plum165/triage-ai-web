@@ -18,7 +18,7 @@ app.use(session({
 }));
 
 // In-memory user store
-let users = [];
+let users = [{ username: "patient", password: "1234" }];
 
 // Per-session conversation (for simplicity, global per user)
 let conversation = [
@@ -28,9 +28,9 @@ let conversation = [
   }
 ];
 
-// === Auth Routes ===
+let latestResponse = null; // Store AI result for doctor/staff to view
 
-// Signup
+// === Auth Routes ===
 app.post("/signup", (req, res) => {
   const { username, password } = req.body;
   const userExists = users.find(u => u.username === username);
@@ -44,7 +44,6 @@ app.post("/signup", (req, res) => {
   res.json({ success: true, user: username });
 });
 
-// Login
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
   const user = users.find(u => u.username === username && u.password === password);
@@ -57,13 +56,12 @@ app.post("/login", (req, res) => {
   res.json({ success: true, user: username });
 });
 
-// Logout
 app.post("/logout", (req, res) => {
   req.session.destroy();
   res.json({ success: true });
 });
 
-// Middleware to check auth
+// Auth middleware
 function checkAuth(req, res, next) {
   if (req.session.user) return next();
   res.status(401).json({ error: "Not logged in." });
@@ -82,6 +80,7 @@ app.post("/ask", checkAuth, async (req, res) => {
     const aiResponse = await callGrokAPI(userMessage, conversation);
 
     conversation.push({ role: "assistant", content: aiResponse.message });
+    latestResponse = aiResponse; // Store for doctor view
 
     res.json({
       message: aiResponse.message,
@@ -94,9 +93,9 @@ app.post("/ask", checkAuth, async (req, res) => {
   }
 });
 
-// === Call Grok API ===
+// === Grok API ===
 async function callGrokAPI(userMessage, conversation) {
-  const apiKey = "YOUR_GROK_API_KEY"; // Replace with your actual key
+  const apiKey = "YOUR_GROK_API_KEY"; // Replace this with your real key
   const apiURL = "https://api.grok.com/v1/chat/completions";
   const modelName = "llama3-8b-8192"; 
 
@@ -122,7 +121,7 @@ async function callGrokAPI(userMessage, conversation) {
   };
 }
 
-// === Helpers ===
+// === Helper extractors ===
 function extractTriage(text) {
   const lower = text.toLowerCase();
   if (lower.includes("critical")) return "Red";
@@ -136,7 +135,16 @@ function extractAdvice(text) {
   return match ? match[1].trim() : null;
 }
 
-// === Page Routes ===
+// === Staff Access to Latest Response ===
+app.get("/latest-response", checkAuth, (req, res) => {
+  if (latestResponse) {
+    res.json(latestResponse);
+  } else {
+    res.status(404).json({ error: "No recent triage results." });
+  }
+});
+
+// === Static Page Routes ===
 app.get("/login", (req, res) => {
   res.sendFile(__dirname + "/public/login.html");
 });
@@ -144,11 +152,23 @@ app.get("/login", (req, res) => {
 app.get("/signup", (req, res) => {
   res.sendFile(__dirname + "/public/signup.html");
 });
+
+// Doctor login page
+app.get("/doctor-login", (req, res) => {
+  res.sendFile(__dirname + "/public/doctor_login.html");
+});
+
+// Doctor dashboard (protected)
+app.get("/doctor-dashboard", checkAuth, (req, res) => {
+  res.sendFile(__dirname + "/public/doctor_dashboard.html");
+});
+
+
 app.get("/", (req, res) => {
   res.redirect("/login");
 });
 
-// Start server
+// === Start Server ===
 app.listen(PORT, () => {
-  console.log(`🚑 Triage AI server running on http://localhost:${PORT}/login`);
+  console.log(`🚑 Triage AI server running on http://localhost:${PORT}`);
 });
