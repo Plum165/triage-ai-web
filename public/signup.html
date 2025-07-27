@@ -1,27 +1,65 @@
-<h2>Sign Up</h2>
-<form onsubmit="signup(event)">
-  <input type="text" id="signup-username" placeholder="Username" required />
-  <input type="password" id="signup-password" placeholder="Password" required />
-  <button type="submit">Sign Up</button>
-</form>
-<script>
-  async function signup(e) {
-    e.preventDefault();
-    const username = document.getElementById("signup-username").value;
-    const password = document.getElementById("signup-password").value;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Signup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-cyan-50 min-h-screen flex items-center justify-center p-4">
 
-    const res = await fetch("/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+  <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-md border border-cyan-200">
+    <h2 class="text-2xl font-bold text-cyan-700 mb-6 text-center">📝 Create Account</h2>
+
+    <form id="signupForm" class="space-y-4">
+      <input
+        type="text"
+        id="username"
+        placeholder="Choose a username"
+        required
+        class="w-full px-4 py-3 rounded-lg border border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+      />
+      <input
+        type="password"
+        id="password"
+        placeholder="Choose a password"
+        required
+        class="w-full px-4 py-3 rounded-lg border border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+      />
+      <button
+        type="submit"
+        class="w-full bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-600 text-white font-semibold py-3 rounded-lg transition hover:from-cyan-500 hover:to-cyan-700 focus:outline-none focus:ring-4 focus:ring-cyan-300"
+      >
+        Sign Up
+      </button>
+    </form>
+
+    <p class="mt-4 text-sm text-center text-gray-600">
+      Already have an account?
+      <a href="/login.html" class="text-cyan-700 hover:underline font-medium">Login here</a>
+    </p>
+  </div>
+
+  <script>
+    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const res = await fetch("/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: document.getElementById("username").value,
+          password: document.getElementById("password").value
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Signup successful!");
+        window.location.href = "/index.html";
+      } else {
+        alert(data.error);
+      }
     });
-
-    const data = await res.json();
-    if (data.success) {
-      alert("Signup successful!");
-      window.location.href = "/chat.html";
-    } else {
-      alert(data.error);
-    }
-  }
-</script>
+  </script>
+</body>
+</html>

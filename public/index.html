@@ -3,20 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <title>Triage AI Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
-    #chat { border: 1px solid #ccc; padding: 10px; max-width: 500px; margin: auto; background: white; }
-    .msg { margin: 10px 0; }
-    .user { color: blue; }
-    .ai { color: green; }
-    input, button { padding: 10px; margin-top: 10px; width: 100%; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+    }
   </style>
 </head>
-<body>
-  <div id="chat">
-    <div id="messages"></div>
-    <input id="userInput" placeholder="Type your answer..." />
-    <button onclick="sendMessage()">Send</button>
+<body class="bg-green-50 min-h-screen flex items-center justify-center p-4">
+
+  <div id="chat" class="w-full max-w-xl bg-white shadow-md rounded-xl p-6 space-y-4 border border-green-200">
+    <h1 class="text-2xl font-bold text-green-700 mb-2">🌿 Triage AI Support</h1>
+
+    <div id="messages" class="space-y-3 max-h-96 overflow-y-auto pr-2"></div>
+
+    <input
+      id="userInput"
+      type="text"
+      placeholder="Type your answer..."
+      class="w-full px-4 py-3 rounded-lg border border-green-300 focus:outline-none focus:ring-2 focus:ring-green-400"
+    />
+
+    <button
+      onclick="sendMessage()"
+      class="w-full bg-gradient-to-r from-green-400 via-green-500 to-green-600 hover:from-green-500 hover:to-green-700 text-white font-semibold py-2.5 rounded-lg transition duration-200 focus:outline-none focus:ring-4 focus:ring-green-300"
+    >
+      Send Message
+    </button>
   </div>
 
   <script>
@@ -24,8 +37,9 @@
 
     function addMessage(text, className) {
       const div = document.createElement("div");
-      div.className = "msg " + className;
+      div.className = `msg rounded-lg px-4 py-2 ${className === 'user' ? 'bg-blue-100 text-blue-800 self-end' : 'bg-green-100 text-green-800'} w-fit max-w-xs`;
       div.textContent = text;
+      div.style.wordWrap = "break-word";
       messagesDiv.appendChild(div);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
@@ -52,6 +66,8 @@
         addMessage("📋 Advice: " + data.advice, "ai");
       }
     }
+
+    
 
     // First question
     window.onload = () => {

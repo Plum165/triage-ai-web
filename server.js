@@ -136,7 +136,19 @@ function extractAdvice(text) {
   return match ? match[1].trim() : null;
 }
 
+// === Page Routes ===
+app.get("/login", (req, res) => {
+  res.sendFile(__dirname + "/public/login.html");
+});
+
+app.get("/signup", (req, res) => {
+  res.sendFile(__dirname + "/public/signup.html");
+});
+app.get("/", (req, res) => {
+  res.redirect("/login");
+});
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚑 Triage AI server running on http://localhost:${PORT}`);
+  console.log(`🚑 Triage AI server running on http://localhost:${PORT}/login`);
 });
