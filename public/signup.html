@@ -35,10 +35,10 @@
 
     <p class="mt-4 text-sm text-center text-gray-600">
       Already have an account?
-      <a href="/login.html" class="text-cyan-700 hover:underline font-medium">Login here</a>
+      <a href="login.html" class="text-cyan-700 hover:underline font-medium">Login here</a>
     </p>
   </div>
-
+    
   <script>
     document.getElementById("signupForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -55,7 +55,7 @@
       const data = await res.json();
       if (data.success) {
         alert("Signup successful!");
-        window.location.href = "/index.html";
+        window.location.href = "index.html";
       } else {
         alert(data.error);
       }

@@ -170,5 +170,5 @@ app.get("/", (req, res) => {
 
 // === Start Server ===
 app.listen(PORT, () => {
-  console.log(`🚑 Triage AI server running on http://localhost:${PORT}`);
+  console.log(`🚑 Triage AI server running on http://localhost:${PORT}/login`);
 });

@@ -1,0 +1,5 @@
+Ensure that there a flow
+Simulate email being sent
+Give triage colour and suggestion to minimize the symptom
+Show result on dashboard
+Give disclamer 
