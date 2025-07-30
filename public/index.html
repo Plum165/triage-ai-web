@@ -30,6 +30,10 @@
     >
       Send Message
     </button>
+    <p style="margin-top: 40px; font-size: 0.9em; color: #555;">
+  <strong>Disclaimer:</strong> This AI triage tool is for informational purposes only. It does not constitute a medical diagnosis or replace professional healthcare advice. If your condition worsens or you're unsure, please contact a healthcare provider immediately.
+</p>
+
   </div>
 
   <script>
@@ -74,5 +78,13 @@
       addMessage("AI: Hello! What brings you in today?", "ai");
     };
   </script>
+  <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; padding: 10px;">Logout</button>
+<script>
+  function logout() {
+    // Optionally clear session/token if you're storing any
+    window.location.href = "login.html"; // or doctor-login.html
+  }
+</script>
+
 </body>
 </html>

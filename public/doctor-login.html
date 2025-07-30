@@ -68,22 +68,18 @@
   <button class="nav-button" onclick="location.href='login.html'">
     ← Back to AI Assistant Login
   </button>
+
   <script>
-    document.getElementById("doctorLoginForm").addEventListener("submit", async (e) => {
+    document.getElementById("doctorLoginForm").addEventListener("submit", (e) => {
       e.preventDefault();
-      const res = await fetch("/doctor-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: document.getElementById("username").value,
-          password: document.getElementById("password").value
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        window.location.href = "/doctor-dashboard.html";
+
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      if (username === "doctor" && password === "1234") {
+        window.location.href = "doctor-dashboard.html";
       } else {
-        alert(data.error || "Login failed. Please try again.");
+        alert("Incorrect username or password. Please try again.");
       }
     });
   </script>

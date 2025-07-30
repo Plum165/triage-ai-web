@@ -152,5 +152,13 @@
       }
       window.onload = fetchPatients;
     </script>
+    <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; padding: 10px;">Logout</button>
+<script>
+  function logout() {
+    // Optionally clear session/token if you're storing any
+    window.location.href = "login.html"; // or doctor-login.html
+  }
+</script>
+
   </body>
 </html>
