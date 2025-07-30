@@ -7,30 +7,25 @@
         font-family: Arial, sans-serif;
         background: #ecfccb;
         padding: 20px;
-        color: #2e7d32;
-      }
-
-      h1 {
         color: #33691e;
       }
-
+      h1 {
+        color: #2e7d32;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
         background-color: #f7ffe5;
       }
-
       th, td {
         padding: 12px;
         border: 1px solid #c8e6c9;
         text-align: left;
       }
-
       .green { background-color: #d0f0c0; }
       .orange { background-color: #fff7c2; }
       .red { background-color: #ffcccc; }
-
       button {
         margin: 4px;
         padding: 6px 10px;
@@ -38,17 +33,15 @@
         border-radius: 5px;
         cursor: pointer;
       }
-
       .reply-btn {
         background-color: #aeea00;
         color: black;
       }
-
       .remove-btn {
         background-color: #ff5252;
         color: white;
       }
-
+      /* Simple modal styles for reply */
       #replyModal {
         position: fixed;
         top: 30%;
@@ -61,13 +54,6 @@
         display: none;
         z-index: 1000;
       }
-
-      #replyModal textarea {
-        width: 100%;
-        height: 100px;
-        margin-top: 10px;
-      }
-
       #overlay {
         display: none;
         position: fixed;
@@ -75,11 +61,18 @@
         background: rgba(0, 0, 0, 0.5);
         z-index: 999;
       }
+      .disclaimer {
+        margin-top: 20px;
+        font-size: 12px;
+        color: #555;
+        border-top: 1px solid #ccc;
+        padding-top: 10px;
+      }
     </style>
   </head>
   <body>
     <h1>🩺 Doctor Dashboard</h1>
-    <p>Here are the latest patient triage cases:</p>
+    <p>Latest patient triage case:</p>
 
     <table>
       <thead>
@@ -92,7 +85,7 @@
         </tr>
       </thead>
       <tbody id="patientList">
-        <!-- Populated by JavaScript -->
+        <!-- Entries populated by JavaScript -->
       </tbody>
     </table>
 
@@ -106,19 +99,20 @@
       <button onclick="closeModal()">Cancel</button>
     </div>
 
+    <div class="disclaimer">
+      <p><strong>Disclaimer:</strong> This system is a simulated triage AI support platform. The AI-generated advice is for demonstration purposes only and should not replace professional medical evaluation. Always consult a qualified healthcare provider for any serious concerns.</p>
+    </div>
+
     <script>
       let selectedPatient = null;
-
       async function fetchPatients() {
-        const res = await fetch('/triage-data'); // Needs to be handled server-side
+        const res = await fetch('/triage-data');
         const data = await res.json();
         const list = document.getElementById("patientList");
         list.innerHTML = "";
-
         data.forEach((patient, index) => {
           const row = document.createElement("tr");
-          row.className = patient.triage.toLowerCase(); // green/orange/red
-
+          row.className = patient.triage.toLowerCase();
           row.innerHTML = `
             <td>${patient.username}</td>
             <td>${patient.issue}</td>
@@ -132,37 +126,30 @@
           list.appendChild(row);
         });
       }
-
       function openReply(username) {
         selectedPatient = username;
-        document.getElementById("modalPatient").innerText = `To: ${username}`;
+        document.getElementById("modalPatient").innerText = `Replying to: ${username}`;
         document.getElementById("overlay").style.display = "block";
         document.getElementById("replyModal").style.display = "block";
       }
-
       function closeModal() {
         document.getElementById("overlay").style.display = "none";
         document.getElementById("replyModal").style.display = "none";
         selectedPatient = null;
       }
-
       function sendReply() {
         const message = document.getElementById("replyText").value;
         if (!message || !selectedPatient) return;
-
-        // Placeholder for sending a reply to the backend
+        // Simulate sending reply (replace with actual backend logic if needed)
         alert(`Reply sent to ${selectedPatient}: ${message}`);
         closeModal();
         document.getElementById("replyText").value = "";
       }
-
       function removePatient(index) {
-        // Placeholder: You’d typically make a DELETE request here
+        // Simulate removal - in a real app, send DELETE request to backend
         alert(`Removed patient case #${index + 1}`);
-        // Re-fetch the list (mocked here — you'd need real backend logic)
         fetchPatients();
       }
-
       window.onload = fetchPatients;
     </script>
   </body>
