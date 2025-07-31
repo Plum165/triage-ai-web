@@ -1,79 +1,94 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Doctor Dashboard</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #ecfccb;
-        padding: 20px;
-        color: #33691e;
-      }
-      h1 {
-        color: #2e7d32;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        background-color: #f7ffe5;
-      }
-      th, td {
-        padding: 12px;
-        border: 1px solid #c8e6c9;
-        text-align: left;
-      }
-      .green { background-color: #d0f0c0; }
-      .orange { background-color: #fff7c2; }
-      .red { background-color: #ffcccc; }
-      button {
-        margin: 4px;
-        padding: 6px 10px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      .reply-btn {
-        background-color: #aeea00;
-        color: black;
-      }
-      .remove-btn {
-        background-color: #ff5252;
-        color: white;
-      }
-      /* Simple modal styles for reply */
-      #replyModal {
-        position: fixed;
-        top: 30%;
-        left: 50%;
-        transform: translate(-50%, -30%);
-        background: white;
-        padding: 20px;
-        border: 2px solid #8bc34a;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        display: none;
-        z-index: 1000;
-      }
-      #overlay {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 999;
-      }
-      .disclaimer {
-        margin-top: 20px;
-        font-size: 12px;
-        color: #555;
-        border-top: 1px solid #ccc;
-        padding-top: 10px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>🩺 Doctor Dashboard</h1>
-    <p>Latest patient triage case:</p>
+<head>
+  <title>Doctor Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #ecfccb;
+      padding: 20px;
+      color: #33691e;
+    }
+    h1 {
+      color: #2e7d32;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #f7ffe5;
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #c8e6c9;
+      text-align: left;
+    }
+    .green { background-color: #d0f0c0; }
+    .orange { background-color: #fff7c2; }
+    .red { background-color: #ffcccc; }
+    button {
+      margin: 4px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .reply-btn {
+      background-color: #aeea00;
+      color: black;
+    }
+    .remove-btn {
+      background-color: #ff5252;
+      color: white;
+    }
+    .clear-btn {
+      background-color: #d32f2f;
+      color: white;
+    }
+    .pdf-btn {
+      background-color: #00796b;
+      color: white;
+    }
+    #replyModal {
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -30%);
+      background: white;
+      padding: 20px;
+      border: 2px solid #8bc34a;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      display: none;
+      z-index: 1000;
+    }
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+    }
+    .disclaimer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #555;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🩺 Doctor Dashboard</h1>
+  <p>Latest patient triage case:</p>
 
+  <div style="margin-bottom: 15px;">
+    <button class="clear-btn" onclick="clearDashboard()">🧹 Clear Dashboard</button>
+    <button class="pdf-btn" onclick="downloadPDF()">⬇️ Download Summary as PDF</button>
+    <button onclick="logout()" style="float: right;">Logout</button>
+  </div>
+
+  <div id="triageContent">
     <table>
       <thead>
         <tr>
@@ -88,77 +103,98 @@
         <!-- Entries populated by JavaScript -->
       </tbody>
     </table>
+  </div>
 
-    <!-- Reply Modal -->
-    <div id="overlay"></div>
-    <div id="replyModal">
-      <h3>Send Reply</h3>
-      <p id="modalPatient"></p>
-      <textarea id="replyText" placeholder="Enter your response..."></textarea><br/>
-      <button onclick="sendReply()">Send</button>
-      <button onclick="closeModal()">Cancel</button>
-    </div>
+  <!-- Reply Modal -->
+  <div id="overlay"></div>
+  <div id="replyModal">
+    <h3>Send Reply</h3>
+    <p id="modalPatient"></p>
+    <textarea id="replyText" placeholder="Enter your response..." rows="4" cols="40"></textarea><br/>
+    <button onclick="sendReply()">Send</button>
+    <button onclick="closeModal()">Cancel</button>
+  </div>
 
-    <div class="disclaimer">
-      <p><strong>Disclaimer:</strong> This system is a simulated triage AI support platform. The AI-generated advice is for demonstration purposes only and should not replace professional medical evaluation. Always consult a qualified healthcare provider for any serious concerns.</p>
-    </div>
 
-    <script>
-      let selectedPatient = null;
-      async function fetchPatients() {
-        const res = await fetch('/triage-data');
-        const data = await res.json();
-        const list = document.getElementById("patientList");
-        list.innerHTML = "";
-        data.forEach((patient, index) => {
-          const row = document.createElement("tr");
-          row.className = patient.triage.toLowerCase();
-          row.innerHTML = `
-            <td>${patient.username}</td>
-            <td>${patient.issue}</td>
-            <td>${patient.triage}</td>
-            <td>${patient.advice}</td>
-            <td>
-              <button class="reply-btn" onclick="openReply('${patient.username}')">Reply</button>
-              <button class="remove-btn" onclick="removePatient(${index})">Remove</button>
-            </td>
-          `;
-          list.appendChild(row);
-        });
-      }
-      function openReply(username) {
-        selectedPatient = username;
-        document.getElementById("modalPatient").innerText = `Replying to: ${username}`;
-        document.getElementById("overlay").style.display = "block";
-        document.getElementById("replyModal").style.display = "block";
-      }
-      function closeModal() {
-        document.getElementById("overlay").style.display = "none";
-        document.getElementById("replyModal").style.display = "none";
-        selectedPatient = null;
-      }
-      function sendReply() {
-        const message = document.getElementById("replyText").value;
-        if (!message || !selectedPatient) return;
-        // Simulate sending reply (replace with actual backend logic if needed)
-        alert(`Reply sent to ${selectedPatient}: ${message}`);
-        closeModal();
-        document.getElementById("replyText").value = "";
-      }
-      function removePatient(index) {
-        // Simulate removal - in a real app, send DELETE request to backend
-        alert(`Removed patient case #${index + 1}`);
+
+  <script>
+    let selectedPatient = null;
+
+    async function fetchPatients() {
+      const res = await fetch('/triage-data');
+      const data = await res.json();
+      const list = document.getElementById("patientList");
+      list.innerHTML = "";
+      data.forEach((patient, index) => {
+        const row = document.createElement("tr");
+        row.className = patient.triage.toLowerCase();
+        row.innerHTML = `
+          <td>${patient.username}</td>
+          <td>${patient.issue}</td>
+          <td>${patient.triage}</td>
+          <td>${patient.advice}</td>
+          <td>
+            <button class="reply-btn" onclick="openReply('${patient.username}')">Reply</button>
+            <button class="remove-btn" onclick="removePatient(${index})">Remove</button>
+          </td>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function openReply(username) {
+      selectedPatient = username;
+      document.getElementById("modalPatient").innerText = `Replying to: ${username}`;
+      document.getElementById("overlay").style.display = "block";
+      document.getElementById("replyModal").style.display = "block";
+    }
+
+    function closeModal() {
+      document.getElementById("overlay").style.display = "none";
+      document.getElementById("replyModal").style.display = "none";
+      selectedPatient = null;
+    }
+
+    function sendReply() {
+      const message = document.getElementById("replyText").value;
+      if (!message || !selectedPatient) return;
+      alert(`Reply sent to ${selectedPatient}: ${message}`);
+      closeModal();
+      document.getElementById("replyText").value = "";
+    }
+
+    async function removePatient(index) {
+      try {
+        await fetch(`/triage-data/${index}`, { method: 'DELETE' });
         fetchPatients();
+      } catch (err) {
+        alert('Error removing patient');
       }
-      window.onload = fetchPatients;
-    </script>
-    <button onclick="logout()" style="position: absolute; top: 20px; right: 20px; padding: 10px;">Logout</button>
-<script>
-  function logout() {
-    // Optionally clear session/token if you're storing any
-    window.location.href = "login.html"; // or doctor-login.html
-  }
-</script>
+    }
 
-  </body>
+    async function clearDashboard() {
+      if (!confirm("Are you sure you want to clear all triage data?")) return;
+      await fetch('/triage-data', { method: 'DELETE' }); 
+      fetchPatients();
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('triageContent');
+      const opt = {
+        margin: 0.5,
+        filename: 'triage-summary.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+      html2pdf().from(element).set(opt).save();
+    }
+
+    function logout() {
+      window.location.href = "login.html";
+    }
+
+    window.onload = fetchPatients;
+  </script>
+</body>
 </html>

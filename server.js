@@ -25,7 +25,18 @@ let doctor = { username: "doctor", password: "1234" };
 let conversation = [
   {
     role: "system",
-    content: "You are a friendly triage assistant. Ask one question at a time to understand the patient's condition. Then classify the urgency as Critical, Urgent, or Non-Urgent and suggest simple remedies to minimize symptoms."
+    content: `You are a friendly triage assistant. 
+Ask one question at a time to understand the patient's condition. 
+Once enough information is gathered, classify the urgency clearly as one of these triage levels: Critical, Urgent, Non-Urgent, or Mild.
+Provide clear advice on how to minimize symptoms or next steps.
+Format your final message exactly like this:
+
+Triage Level: [Critical/Urgent/Non-Urgent/Mild]
+
+Advice:
+- [Advice bullet points here]
+
+If you are still asking for more information, do not provide triage or advice yet.`
   }
 ];
 
@@ -61,7 +72,6 @@ app.post("/logout", (req, res) => {
 // === Auth Routes for doctors ===
 app.post("/doctor-login", (req, res) => {
   const { username, password } = req.body;
-  // We use the fixed doctor object for simplicity:
   if (username === doctor.username && password === doctor.password) {
     req.session.doctor = true;
     res.json({ success: true });
@@ -70,35 +80,39 @@ app.post("/doctor-login", (req, res) => {
   }
 });
 
-// Auth middleware for patients (or generic session)
+// Auth middleware
 function checkAuth(req, res, next) {
   if (req.session.user || req.session.doctor) return next();
   res.status(401).json({ error: "Not logged in." });
 }
 
 // === AI Route for patient chat ===
-app.post("/ask", checkAuth, async (req, res) => {
+app.post("/ask", async (req, res) => {
   const userMessage = req.body.message;
   if (!userMessage) {
     return res.status(400).json({ error: "No message provided." });
   }
   conversation.push({ role: "user", content: userMessage });
+
   try {
     const aiResponse = await callGrokAPI(userMessage, conversation);
     conversation.push({ role: "assistant", content: aiResponse.message });
+
     latestResponse = {
       username: req.session.user || "Anonymous",
       issue: userMessage,
-      triage: aiResponse.triage,
-      advice: aiResponse.advice
+      triage: aiResponse.triage || "Not determined yet",
+      advice: aiResponse.advice || "No advice provided yet"
     };
-    // Simulate sending an email (replace this with a real email service in production)
-    simulateEmail(latestResponse);
+
+   
+
     res.json({
       message: aiResponse.message,
       triage: aiResponse.triage,
       advice: aiResponse.advice
     });
+
   } catch (err) {
     console.error("Error:", err);
     res.status(500).json({ error: "Something went wrong calling the AI." });
@@ -106,8 +120,7 @@ app.post("/ask", checkAuth, async (req, res) => {
 });
 
 // === Simulate sending an email ===
-function simulateEmail(responseData) {
-  // This is a simulation. In a real application, integrate with an email service.
+/*function simulateEmail(responseData) {
   console.log("Simulated Email Sent:");
   console.log(`To: doctor@example.com
 Subject: New Patient Triage Result
@@ -118,13 +131,15 @@ Triage: ${responseData.triage}
 Advice: ${responseData.advice}
 ----------------------------
 (Note: This is a simulated email.)`);
+For dev purposes
 }
-
-// === Grok API Call (simulate if not available) ===
+*/
+// === Grok API Call ===
 async function callGrokAPI(userMessage, conversation) {
-  const apiKey = "YOUR_GROK_API_KEY"; // Replace with your real key
-  const apiURL = "https://api.grok.com/v1/chat/completions";
-  const modelName = "llama3-8b-8192"; 
+  const apiKey = "Grok_API_KEY_Here"; // Replace with your actual key
+  const apiURL = "https://api.groq.com/openai/v1/chat/completions";
+  const modelName = "llama3-8b-8192";
+
   try {
     const response = await fetch(apiURL, {
       method: "POST",
@@ -137,15 +152,27 @@ async function callGrokAPI(userMessage, conversation) {
         messages: conversation
       })
     });
+
     const data = await response.json();
-    const replyText = data.choices?.[0]?.message?.content || "No response from Grok.";
+  
+
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error("No response choices returned from Grok.");
+    }
+
+    const replyText = data.choices[0].message.content || "No response from Grok.";
+
+    // Parse triage level & advice dynamically
+    const triage = extractTriage(replyText);
+    const advice = extractAdvice(replyText);
+
     return {
       message: replyText,
-      triage: extractTriage(replyText),
-      advice: extractAdvice(replyText)
+      triage,
+      advice
     };
+
   } catch (error) {
-    // Fallback simulation logic if Grok API call fails:
     console.error("Grok API call error:", error);
     return {
       message: "Based on your symptoms, please rest, hydrate, and monitor your condition closely.",
@@ -157,43 +184,93 @@ async function callGrokAPI(userMessage, conversation) {
 
 // === Helpers to extract triage and advice ===
 function extractTriage(text) {
-  const lower = text.toLowerCase();
-  if (lower.includes("critical")) return "Red";
-  if (lower.includes("urgent")) return "Orange";
-  if (lower.includes("non-urgent")) return "Green";
-  return "Yellow"; // default
+  const triageMatch = text.match(/Triage Level:\s*(Critical|Urgent|Non-Urgent|Mild)/i);
+  if (triageMatch) {
+    const level = triageMatch[1];
+    // Map textual levels to color codes or whatever you want
+    switch (level.toLowerCase()) {
+      case "critical": return "Red";
+      case "urgent": return "Orange";
+      case "non-urgent": return "Green";
+      case "mild": return "Yellow";
+      default: return "Yellow";
+    }
+  }
+  return null; // no triage found yet
 }
 
 function extractAdvice(text) {
-  const match = text.match(/advice[:\-]?\s*(.+)/i);
-  return match ? match[1].trim() : "Rest and monitor your symptoms. If they worsen, seek medical help.";
+  const adviceMatch = text.match(/Advice:\s*((?:- .+(?:\n|$))*)/i);
+  if (adviceMatch) {
+    // Clean and join advice bullet points if multiple lines
+    const advText = adviceMatch[1].trim();
+    return advText.replace(/^\-\s*/gm, "").trim();
+  }
+  return null; // no advice found yet
 }
 
+.
+
 // === Endpoint for doctor dashboard to view latest patient result ===
-app.get("/triage-data", (req, res) => {
-  if (!req.session.doctor) {
-    return res.status(403).json({ error: "Not authorized" });
-  }
+app.get("/triage-data", checkAuth, (req, res) => {
   if (latestResponse) {
-    res.json([latestResponse]); // Return as an array for table display
+    res.json([latestResponse]);
   } else {
     res.json([]);
   }
+});
+
+// === Clear the conversation memory ===
+app.post("/reset", checkAuth, (req, res) => {
+  conversation = [conversation[0]]; // keep system prompt
+  res.sendStatus(200);
+});
+
+// === Delete triage data ===
+app.delete("/triage-data", checkAuth, (req, res) => {
+  latestResponse = null;
+  res.sendStatus(200);
+});
+
+// === Generate downloadable PDF summary ===
+app.get("/triage-pdf", checkAuth, (req, res) => {
+  if (!latestResponse) return res.status(404).send("No data to export");
+
+  const doc = new PDFDocument();
+  const filename = `triage_summary_${Date.now()}.pdf`;
+  const filePath = path.join(__dirname, filename);
+
+  doc.pipe(fs.createWriteStream(filePath));
+  doc.fontSize(16).text("Triage Summary", { underline: true });
+  doc.moveDown();
+  doc.fontSize(12).text(`Patient: ${latestResponse.username}`);
+  doc.text(`Issue: ${latestResponse.issue}`);
+  doc.text(`Triage: ${latestResponse.triage}`);
+  doc.text(`Advice: ${latestResponse.advice}`);
+  doc.end();
+
+  doc.on("finish", () => {
+    res.download(filePath, filename, () => fs.unlinkSync(filePath));
+  });
 });
 
 // === Static Page Routes ===
 app.get("/login", (req, res) => {
   res.sendFile(__dirname + "/public/login.html");
 });
+
 app.get("/signup", (req, res) => {
   res.sendFile(__dirname + "/public/signup.html");
 });
+
 app.get("/doctor-login", (req, res) => {
   res.sendFile(__dirname + "/public/doctor_login.html");
 });
+
 app.get("/doctor-dashboard", checkAuth, (req, res) => {
   res.sendFile(__dirname + "/public/doctor_dashboard.html");
 });
+
 app.get("/", (req, res) => {
   res.redirect("/login");
 });
@@ -202,3 +279,4 @@ app.get("/", (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚑 Triage AI server running on http://localhost:${PORT}/login`);
 });
+

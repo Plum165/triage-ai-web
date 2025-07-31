@@ -3,3 +3,6 @@ Simulate email being sent
 Give triage colour and suggestion to minimize the symptom
 Show result on dashboard
 Give disclamer 
+
+Need to reset the AI prompt
+Remove any data from dashboard
