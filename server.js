@@ -209,7 +209,7 @@ function extractAdvice(text) {
   return null; // no advice found yet
 }
 
-.
+
 
 // === Endpoint for doctor dashboard to view latest patient result ===
 app.get("/triage-data", checkAuth, (req, res) => {
